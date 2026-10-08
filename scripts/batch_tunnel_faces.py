@@ -99,7 +99,9 @@ def mixed_job(seed):
         bounds = [dict(irregular(r, .7), angle_deg=trace + 90 + r.uniform(-10, 10), offset_m=o1 + w,
                        gouge_m=r.uniform(.05, .14)) for w in (0, r.uniform(1.4, 3.))]
     tint = job['rock_rgb']
-    zones = [zone_params('RMC' + c, r, angles, [max(30, min(200, v + r.randint(-12, 12))) for v in tint]) for c in codes]
+    # zones differ mainly in brightness; independent per-channel jitter swings the hue of dark rock
+    zone_rgb = lambda: [max(30, min(200, int(v * f) + r.randint(-3, 3))) for f in [r.uniform(.9, 1.1)] for v in tint]
+    zones = [zone_params('RMC' + c, r, angles, zone_rgb()) for c in codes]
     for z in zones:
         z.pop('muck_height_m')
     job.update(rmc_code=None, pattern=pattern, zones=zones, boundaries=bounds,

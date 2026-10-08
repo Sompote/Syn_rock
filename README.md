@@ -4,7 +4,19 @@ This repository builds synthetic drill-and-blast tunnel faces in Rhino 8 and lab
 
 ![single-class faces, two per RMC code](examples/single_class_faces.jpg)
 
-The figure above shows two faces for each of the 15 RMC codes with their label overlays. A mixed mode builds faces with two zones separated by a contact, or three zones in which a weaker fault band with a clay gouge seam cuts through the host rock. The boundaries bend over metres, step sideways in an en-echelon pattern and are ragged at about 0.3 m.
+| Image (RMCC03) | Labels |
+|---|---|
+| ![single-class face](examples/tunnel_face_117.jpg) | ![single-class face labels](examples/tunnel_face_117_overlay.jpg) |
+
+The contact sheet shows two faces for each of the 15 RMC codes with their label overlays, and the pair above shows one of them at full size as the training image and with its labels. A mixed mode builds faces with two zones separated by a contact, or three zones in which a weaker fault band with a clay gouge seam cuts through the host rock. The boundaries bend over metres, step sideways in an en-echelon pattern and are ragged at about 0.3 m.
+
+![mixed faces, two or three rock classes per image](examples/mixed_faces.jpg)
+
+The figure above shows six mixed faces, each captioned with the RMC codes it contains. Overlay colours follow the zone order rather than the class, so read the class from the caption or the polygon label. The pair below shows one fault-band face (RMCB03 host rock cut by an RMCD02 fault zone) as the training image and with its labels, where every zone becomes its own RMC polygon and zones that share a code are merged into one annotation.
+
+| Image | Labels |
+|---|---|
+| ![mixed face](examples/tunnel_face_mixed_example.jpg) | ![mixed face labels](examples/tunnel_face_mixed_example_overlay.jpg) |
 
 ## What the labels mean, and what they do not
 

@@ -105,7 +105,7 @@ Ask Claude to show you the overlay or a contact sheet after each change, because
 
 ## Known Rhino pitfalls
 
-`Rhino.Display.ViewCapture` returns a grey wireframe without vertex colours when the display mode has shadows on, so the generator captures with `view.CaptureToBitmap(size, display_mode)` instead. In IronPython, `json.dump` to a file opened with `open()` writes nothing until the file is closed, so close every file explicitly. Do not run two generator jobs at once, because they share the Rhino document and `output/job.json`.
+`Rhino.Display.ViewCapture` returns a grey wireframe without vertex colours when the display mode has shadows on, so the generator captures with `view.CaptureToBitmap(size, display_mode)` instead. In IronPython, `json.dump` to a file opened with `open()` writes nothing until the file is closed, so close every file explicitly. Do not run two generator jobs at once, because they share the Rhino document and `output/job.json`. Stopping a batch while Rhino is rendering a seed can leave the plugin unresponsive. If every request then times out, close any dialog in Rhino and run `mcpstop` followed by `mcpstart`, or restart Rhino.
 
 ## Files
 

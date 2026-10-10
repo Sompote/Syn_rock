@@ -27,6 +27,32 @@ CLASSES = {
 }
 
 
+CAL = {}  # filled from --calibration (see calibrate_classes.py); empty = uncalibrated archetypes
+
+
+def lab_to_rgb(L, a, b):
+    """CIE Lab (D65, OpenCV 8-bit convention after rescaling L to 0-100) to sRGB 0-255."""
+    fy = (L + 16) / 116.; fx = fy + a / 500.; fz = fy - b / 200.
+    finv = lambda t: t ** 3 if t ** 3 > .008856 else (t - 16 / 116.) / 7.787
+    X, Y, Z = .950456 * finv(fx), finv(fy), 1.088754 * finv(fz)
+    rgb = [3.240479 * X - 1.537150 * Y - .498535 * Z, -.969256 * X + 1.875992 * Y + .041556 * Z,
+           .055648 * X - .204043 * Y + 1.057311 * Z]
+    gam = lambda c: 12.92 * c if c <= .0031308 else 1.055 * c ** (1 / 2.4) - .055
+    return [int(max(25, min(225, round(255 * gam(max(0., c)))))) for c in rgb]
+
+
+def calibrated(code, r, z):
+    """Apply the per-letter calibration: rock colour from the real colour pool, grain, joint darkness, weathering."""
+    c = CAL['letters'][code[3]]
+    L, a, b = r.choice(CAL['colour_pool'][code[3]])
+    z['rock_rgb'] = lab_to_rgb(L + c['dL'], a + c['da'], b + c['db'])
+    z['grain'] = c['grain']
+    z['joint_dark'] *= c['dark_scale']; z['facet_dark'] *= c['dark_scale']
+    z['weathering'] = min(1., z['weathering'] * c['wz_scale'])
+    z['weathered_rgb'] = c['weathered_rgb']
+    return z
+
+
 def job_for(seed, code):
     r = random.Random(seed * 7919)
     rock = r.choice(sorted(ROCKS))
@@ -42,7 +68,7 @@ def job_for(seed, code):
                       'lens_mm': r.uniform(20, 26), 'key_light': [cx + r.uniform(-1.5, 1.5), -dist + 1.5, r.uniform(3.5, 5.)]},
            'capture_size': [1560, 1040]}
     z = zone_params(code, r, [r.uniform(0, 180) for _ in range(4)], tint)
-    job.update({k: v for k, v in z.items() if k not in ('code', 'rock_rgb')})
+    job.update({k: v for k, v in z.items() if k != 'code'})
     job['muck_height_m'] = z.pop('muck_height_m')
     return job
 
@@ -59,9 +85,10 @@ def zone_params(code, r, angles, rgb):
     sets = [[angles[k], sp * r.uniform(.8, 1.25)] for k in range(n)]
     while len(sets) < 3:
         sets.append([angles[len(sets)], max(sp * 1.5, r.uniform(2.5, 4.))])  # sparse, widely spaced set
-    return dict(code=code, rock_rgb=rgb, joint_sets=sets, block_relief_m=lerp('relief'), facet_scale=lerp('facet'),
-                crush=lerp('crush'), weathering=lerp('wz'), stained_joint_fraction=lerp('stain'), joint_dark=lerp('dark'),
-                facet_dark=lerp('fdark'), wet_height_m=lerp('wet'), muck_height_m=lerp('muck'), severity_t=t)
+    z = dict(code=code, rock_rgb=rgb, joint_sets=sets, block_relief_m=lerp('relief'), facet_scale=lerp('facet'),
+             crush=lerp('crush'), weathering=lerp('wz'), stained_joint_fraction=lerp('stain'), joint_dark=lerp('dark'),
+             facet_dark=lerp('fdark'), wet_height_m=lerp('wet'), muck_height_m=lerp('muck'), severity_t=t)
+    return calibrated(code, r, z) if CAL else z
 
 
 CODES = [L + s for L in 'ABCDE' for s in ('01', '02', '03')]
@@ -116,7 +143,12 @@ def main():
     ap.add_argument('--codes', default=','.join(CODES))
     ap.add_argument('--mixed', type=int, default=0, help='instead of per-class faces, make this many 2-3 zone faces')
     ap.add_argument('--out', default=str(ROOT / 'output'))
+    ap.add_argument('--calibration', default=str(ROOT / 'calibration/class_calibration.json'),
+                    help="per-letter calibration JSON; pass '' for the uncalibrated archetypes")
     a = ap.parse_args()
+    if a.calibration and Path(a.calibration).exists():
+        CAL.update(json.loads(Path(a.calibration).read_text()))
+        print('calibration:', a.calibration, flush=True)
     OUT = Path(a.out).resolve(); OUT.mkdir(parents=True, exist_ok=True)
     rhino_code = (ROOT / 'scripts/rhino_tunnel_face.py').read_text().replace('__OUT_DIR__', str(OUT))
     if a.mixed:

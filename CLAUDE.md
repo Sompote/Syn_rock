@@ -9,3 +9,6 @@ This repository generates synthetic tunnel faces in Rhino 8 and labels them in t
 - One job at a time: the Rhino document and `output/job.json` are shared, so a second run overwrites the first mid-render. Editing `rhino_tunnel_face.py` while a batch runs changes the remaining seeds.
 - The RMC codebook is not defined in the source data. The `CLASSES` table in `batch_tunnel_faces.py` is an assumed A (best) to E (worst) ordering; say so whenever class meaning matters, and do not present synthetic labels as geologically rated.
 - After any visual change, look at the overlay or a contact sheet (`scripts/contact_sheet_tunnel_faces.py`) before reporting success. `fbm()` has a typical amplitude of only about +-0.3, so noise amplitudes in job parameters look smaller than their names suggest.
+- Blender: use the OptiX denoiser (default in render_faces.py); OpenImageDenoise cost ~22 s/frame on an RTX 5090. Geometry is CPU-bound, so run several Blender workers per GPU.
+- `textures/` and `calibration/class_calibration.json` are derived from private photographs; they are git-ignored and must never be committed.
+- When chaining stages on a GPU box, wait on a sentinel line in a log file, not on `pgrep -f <pattern>` inside a `bash -c` string, which matches itself and never returns.

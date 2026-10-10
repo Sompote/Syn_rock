@@ -59,13 +59,15 @@ def make_sets(joint_sets, zr):
 zone_jobs = JOB.get('zones') or [{'code': JOB.get('rmc_code'), 'rock_rgb': base, 'joint_sets': JOB['joint_sets'],
     'block_relief_m': JOB.get('block_relief_m', .16), 'facet_scale': JOB.get('facet_scale', 1.), 'crush': JOB.get('crush', 0.),
     'weathering': JOB.get('weathering', 0.), 'stained_joint_fraction': JOB.get('stained_joint_fraction', .3),
-    'joint_dark': JOB.get('joint_dark', 1.), 'facet_dark': JOB.get('facet_dark', .45), 'wet_height_m': JOB.get('wet_height_m', 1.6)}]
+    'joint_dark': JOB.get('joint_dark', 1.), 'facet_dark': JOB.get('facet_dark', .45), 'wet_height_m': JOB.get('wet_height_m', 1.6),
+    'grain': JOB.get('grain', .10), 'weathered_rgb': JOB.get('weathered_rgb', [150, 108, 70])}]
 ZONES = []
 for zi, zj in enumerate(zone_jobs):
     ZONES.append({'sets': make_sets(zj['joint_sets'], random.Random(seed * 13 + zi)), 'rgb': zj['rock_rgb'],
                   'relief': zj['block_relief_m'], 'facet': zj['facet_scale'], 'crush': zj['crush'], 'wz': zj['weathering'],
                   'stain': zj['stained_joint_fraction'], 'dark': zj['joint_dark'], 'fdark': zj['facet_dark'],
-                  'wet': zj['wet_height_m'], 'code': zj['code']})
+                  'wet': zj['wet_height_m'], 'code': zj['code'],
+                  'grain': zj.get('grain', .10), 'wcol': zj.get('weathered_rgb', [150, 108, 70])})
 BOUNDS = JOB.get('boundaries', [])
 
 def zone_of(x, z):
@@ -179,12 +181,13 @@ def grid(nu, nv, fn):
     return m
 
 def rock_colour(x, z, dark, stain, bk, wet, P):
-    tone = 1 + (bk - .5) * .22 + .18 * fbm(x * 1.3, z * 1.3, seed + 40) + .10 * (h2(int(x * 60), int(z * 60), seed) - .5)
+    # P['grain']: crystal / grain speckle contrast, the main control on fine image texture
+    tone = 1 + (bk - .5) * .22 + .18 * fbm(x * 1.3, z * 1.3, seed + 40) + P['grain'] * (h2(int(x * 60), int(z * 60), seed) - .5)
     c = [v * tone for v in P['rgb']]
     wz = P['wz']
     if wz > 0:  # blend toward decomposed, iron-stained soil-like rock
         w = max(0., min(1., wz * (.75 + .6 * fbm(x * .5, z * .5, seed + 45))))
-        wc = [v * (1 + .15 * fbm(x * 2.5, z * 2.5, seed + 46)) for v in JOB.get('weathered_rgb', [150, 108, 70])]
+        wc = [v * (1 + .15 * fbm(x * 2.5, z * 2.5, seed + 46)) for v in P['wcol']]
         c = [c[i] * (1 - w) + wc[i] * w for i in range(3)]
     c = [c[i] * (1 - stain * .55) + stain_rgb[i] * stain * .55 for i in range(3)]
     c = [v * (1 - .48 * dark) for v in c]
